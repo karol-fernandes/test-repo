@@ -1,0 +1,56 @@
+name: Test tags
+env:
+  AWS-REGION: us-west-1
+  GH-RUNNER-ROLE: arn:aws:iam::025126977229:role/swm-pls-eks-runner-ci-gh-actions-autoscaling
+
+on:
+  push:
+    branches:
+      - feature/test-merge
+  repository_dispatch:
+    types: [eventA]
+  workflow_dispatch:
+
+jobs:
+  scale-runner:
+    name: "Scale up the runner"
+    runs-on: [ "self-hosted", "infra_id:organization-github-runners" ]
+    steps:
+      - name: "Configure AWS Credentials"
+        uses: aws-actions/configure-aws-credentials@v1.5.3
+        with:
+          aws-region: ${{ env.AWS-REGION }}
+          role-to-assume: ${{ env.GH-RUNNER-ROLE }}
+          role-skip-session-tagging: true
+          role-duration-seconds: 900
+
+      - name: "Set desired capacity"
+        uses: flexera/actions-aws-autoscaler@v1.0.1
+        with:
+          groupName: github-runner-swm-pls-eks-runner-ci-7dg7r
+
+  test:
+    needs: scale-runner
+    runs-on: [ self-hosted, linux, x64, "env:ci", "infra_id:swm-pls-eks-runner"]
+    steps:
+      - uses: actions/checkout@v2
+      - uses: actions-ecosystem/action-get-latest-tag@v1
+        id: get-latest-tag
+        with:
+          with_initial_version: true
+          initial_version: "Build-1.0.8"
+      - name: Set env
+        run: echo "RELEASE_VERSION=$(echo ${{ steps.get-latest-tag.outputs.tag }} | cut -d- -f2)" >> $GITHUB_ENV
+      - name: Test
+        run: echo "tag is ${{ env.RELEASE_VERSION }}"
+      - name: read
+        run: |
+          ver=$(echo ${{ steps.get-latest-tag.outputs.tag }} | cut -d- -f2)
+          echo "RELEASE_VERSION=$ver" >> $GITHUB_ENV
+          echo "tag is ${{ env.RELEASE_VERSION }}"
+      - name: Invoke CI deploy workflow
+        uses: peter-evans/repository-dispatch@v1
+        with:
+          token: ${{ secrets.WORKFLOW_TOKEN }}
+          event-type: trigger-ci-deploy
+          client-payload: '{"ref": "${{ github.ref }}", "sha": "${{ github.sha }}"}'
