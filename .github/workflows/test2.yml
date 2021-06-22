@@ -11,5 +11,5 @@ jobs:
     steps:
       - uses: actions/checkout@v2
       - name: print details 2
-        run: echo "started 2nd one."
+        run: echo "started second one."
       
