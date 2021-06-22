@@ -1,0 +1,47 @@
+name: Set build properties
+description: Sets properties required for the build
+
+inputs:
+  major_version:
+    description: 'Major build version'
+    required: true
+
+  minor_version:
+    description: 'Minor build version'
+    required: true
+
+outputs:
+  next_version:
+    description: "Next build version"
+    value: ${{ steps.next_version.outputs.next_version }}
+  patch:
+    description: "Patch version number"
+    value: ${{ steps.patch.outputs.patch }}
+  build-date:
+    description: "Build date"
+    value: ${{ steps.build-date.outputs.build-date }}
+  short_sha:
+    description: "Short commit sha"
+    value: ${{ steps.short_sha.outputs.short_sha }}
+
+
+runs:
+  using: "composite"
+  steps:
+    - run: |
+        chmod +x ${{ github.action_path }}/setBuildProperties.sh
+        ${{ github.action_path }}/setBuildProperties.sh ${{ inputs.major_version }} ${{ inputs.minor_version }}
+      shell: bash
+
+    - id: next_version
+      run:
+        echo "::set-output name=next_version::${{env.NEXTVER}}"
+      shell: bash
+    - id: patch
+      run:
+        echo "::set-output name=patch::${{env.PATCH}}"
+      shell: bash
+    - id: short_sha
+      run:
+        echo "::set-output name=short_sha::${{env.SHORT_SHA}}"
+      shell: bash

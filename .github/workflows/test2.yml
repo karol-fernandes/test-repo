@@ -1,0 +1,15 @@
+name: Test run
+
+on:
+  repository_dispatch:
+    types: [eventA]
+  workflow_dispatch:
+
+jobs:
+  test:
+    runs-on:  ubuntu-latest
+    steps:
+      - uses: actions/checkout@v2
+      - name: print details 2
+        run: echo "started 2nd one"
+      
